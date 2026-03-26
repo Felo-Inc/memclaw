@@ -1,0 +1,22 @@
+{
+  "name": "memclaw",
+  "owner": {
+    "name": "Felo-Inc",
+    "url": "https://github.com/Felo-Inc"
+  },
+  "metadata": {
+    "description": "Memclaw — persistent project workspaces for AI agents, backed by Felo knowledge base",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "memclaw",
+      "description": "Persistent project workspaces for AI agents — task tracking, artifact storage, and semantic retrieval",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./memclaw"
+      ]
+    }
+  ]
+}
