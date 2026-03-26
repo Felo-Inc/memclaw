@@ -1,0 +1,8 @@
+{
+  "name": "memclaw",
+  "version": "1.0.0",
+  "description": "Persistent project workspaces for AI agents — task tracking, artifact storage, and semantic retrieval",
+  "skills": [
+    "./memclaw"
+  ]
+}

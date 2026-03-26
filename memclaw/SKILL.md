@@ -16,14 +16,14 @@ The Agent's external brain for projects. Once active, the Agent continuously syn
 | README | The Agent's memory of the project; Agent maintains proactively |
 | Artifacts | Key outputs; Agent asks before saving |
 | Tasks | Tracking records for substantive work; Agent maintains silently |
-| Registry | `~/.claude/workspaces.json`, maps project names to LiveDoc IDs |
+| Registry | `~/.memclaw/workspaces.json`, maps project names to LiveDoc IDs |
 
 **Registry format:**
 ```json
 {
   "workspaces": {
     "horror-niche": "abc123",
-    "client-acme": "def456"
+    "client-zhang": "def456"
   }
 }
 ```
@@ -33,7 +33,7 @@ The Agent's external brain for projects. Once active, the Agent continuously syn
 In all commands below, `$SCRIPT` refers to:
 
 ```
-node ~/.claude/skills/felo-livedoc/scripts/run_livedoc.mjs
+node memclaw/scripts/run.mjs
 ```
 
 ## When NOT to Use
@@ -65,7 +65,7 @@ User pastes GitHub install link → execute installation → after completion, a
    ```bash
    export FELO_API_KEY="user's Key"
    ```
-   Or persist to `~/.claude/env` (platform-dependent).
+   Or persist to `~/.memclaw/env` (platform-dependent).
 3. Verify: `$SCRIPT list`
    - Pass + first install → show usage introduction (see "First-Time Usage Introduction" below)
    - Pass + re-authorization → "✅ Authorization updated." → retry the failed command
@@ -90,7 +90,7 @@ User pastes GitHub install link → execute installation → after completion, a
 
 ### 1. Open Project
 
-1. Read `~/.claude/workspaces.json`, fuzzy-match project name. If not found locally, try `$SCRIPT list --keyword`.
+1. Read `~/.memclaw/workspaces.json`, fuzzy-match project name. If not found locally, try `$SCRIPT list --keyword`.
 2. **Found:** Set as active project → `$SCRIPT get-readme SHORT_ID` → present README as project briefing → append link `https://felo.ai/livedoc/SHORT_ID?from=claw`. If README is empty or missing, fall back to `$SCRIPT resources SHORT_ID` to show the resource list.
 3. **Not found:** "No project found for '[X]'. Want me to create one?"
 
