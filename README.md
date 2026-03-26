@@ -1,4 +1,4 @@
-# Memclaw
+# MemClaw
 
 <p align="center">
   <strong>The AI agent's external brain — persistent project workspaces across sessions.</strong>
@@ -8,7 +8,7 @@
   <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="MIT License"></a>
 </p>
 
-**Memclaw** is a skill for AI coding agents. It gives agents persistent project workspaces — each workspace stores tasks, artifacts, and a living README so any session (or collaborator) can load it and immediately have full context.
+**MemClaw** is a skill for AI coding agents. It gives agents persistent project workspaces — each workspace stores tasks, artifacts, and a living README so any session (or collaborator) can load it and immediately have full context.
 
 ---
 
