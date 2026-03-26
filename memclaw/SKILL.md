@@ -1,29 +1,29 @@
 ---
 name: memclaw
-description: "Use when users need to manage Memclaw project workspaces — creating, loading, switching workspaces, saving artifacts, querying history, or managing tasks. Triggers on workspace-related intent combined with project/client names, or on 401 UNAUTHORIZED errors from the API."
+description: "Use when users need to manage projects backed by Felo LiveDoc — creating, opening, switching projects, saving artifacts, querying history, or managing tasks. Triggers on project-related intent combined with project/client/niche names, or on 401 UNAUTHORIZED errors from Felo API."
 ---
 
-# Memclaw — Workspace Manager
+# MemClaw
 
-The Agent's external brain for projects. Once active, the Agent continuously syncs tasks, artifacts, and knowledge to the corresponding LiveDoc, so anyone (including future sessions or colleagues) can load the workspace and immediately get full context.
+The Agent's external brain for projects. Once active, the Agent continuously syncs tasks, artifacts, and knowledge to the corresponding LiveDoc, so anyone (including future sessions or colleagues) can open the project and immediately get full context.
 
 ## Core Concepts
 
 | Concept | Description |
 |---------|-------------|
-| Workspace | One project = one LiveDoc |
-| Active Workspace | Session-level state; all operations auto-sync here |
+| Project | One project = one LiveDoc |
+| Active Project | Session-level state; all operations auto-sync here |
 | README | The Agent's memory of the project; Agent maintains proactively |
 | Artifacts | Key outputs; Agent asks before saving |
 | Tasks | Tracking records for substantive work; Agent maintains silently |
-| Registry | `~/.memclaw/workspaces.json`, maps project names to LiveDoc IDs |
+| Registry | `~/.claude/workspaces.json`, maps project names to LiveDoc IDs |
 
 **Registry format:**
 ```json
 {
   "workspaces": {
-    "client-acme": "abc123",
-    "project-x": "def456"
+    "horror-niche": "abc123",
+    "client-acme": "def456"
   }
 }
 ```
@@ -33,14 +33,14 @@ The Agent's external brain for projects. Once active, the Agent continuously syn
 In all commands below, `$SCRIPT` refers to:
 
 ```
-node memclaw/scripts/run.mjs
+node ~/.claude/skills/felo-livedoc/scripts/run_livedoc.mjs
 ```
 
 ## When NOT to Use
 
 - Simple chitchat or clarifying questions
-- One-off generation unrelated to any project/workspace
-- User has not installed the Memclaw NPM package
+- One-off generation unrelated to any project
+- User has not installed the Felo LiveDoc NPM package
 
 ---
 
@@ -65,7 +65,7 @@ User pastes GitHub install link → execute installation → after completion, a
    ```bash
    export FELO_API_KEY="user's Key"
    ```
-   Or persist to `~/.memclaw/env` (platform-dependent).
+   Or persist to `~/.claude/env` (platform-dependent).
 3. Verify: `$SCRIPT list`
    - Pass + first install → show usage introduction (see "First-Time Usage Introduction" below)
    - Pass + re-authorization → "✅ Authorization updated." → retry the failed command
@@ -73,92 +73,108 @@ User pastes GitHub install link → execute installation → after completion, a
 
 **First-Time Usage Introduction** (show only on first install; skip on re-authorization):
 
-> "🎉 Setup complete! You can now use the following commands to manage workspaces:
+> "🎉 Setup complete! You can now manage your projects:
 >
-> 📁 **Create workspace** — Create a standalone workspace for a new project
-> Example: 'Create a workspace called Client Acme'
+> 📁 **New project** — Create a standalone project for a new task
+> Example: 'Create a project for horror niche'
 >
-> 📂 **Load workspace** — Open an existing project, restore context
-> Example: 'Load the Acme workspace'
+> 📂 **Open project** — Open an existing project, restore context
+> Example: 'Open horror niche'
 >
-> 📋 **View workspace** — List all projects or view project contents
-> Example: 'What workspaces do I have?' / 'What's in the Acme workspace?'
+> 📋 **View all projects** — List all projects or view project contents
+> Example: 'What projects do I have?' / 'What's in the horror niche?'
 >
 > 💾 **Save artifacts** — Important outputs will prompt you to save
 >
-> The workspace records everything we do. You can view it anytime on the web: https://felo.ai"
+> Projects record everything we do. You can view them anytime on the web: https://memclaw.felo.ai"
 
-### 1. Load Workspace
+### 1. Open Project
 
-1. Read `~/.memclaw/workspaces.json`, fuzzy-match project name. If not found locally, try `$SCRIPT list --keyword`.
-2. **Found:** Set as active → `$SCRIPT get-readme SHORT_ID` → present README as workspace briefing → append link `https://felo.ai/livedoc/SHORT_ID?from=claw`. If README is empty or missing, fall back to `$SCRIPT resources SHORT_ID` to show the resource list.
-3. **Not found:** "No workspace found for '[X]'. Want me to create one?"
+1. Read `~/.claude/workspaces.json`, fuzzy-match project name. If not found locally, try `$SCRIPT list --keyword`.
+2. **Found:** Set as active project → `$SCRIPT get-readme SHORT_ID` → present README as project briefing → append link `https://felo.ai/livedoc/SHORT_ID?from=claw`. If README is empty or missing, fall back to `$SCRIPT resources SHORT_ID` to show the resource list.
+3. **Not found:** "No project found for '[X]'. Want me to create one?"
 
-### 2. Create Workspace
+### 2. Create Project
 
 ```bash
 $SCRIPT create --name "Project Name" --description "workspace"
 ```
 
-Extract `short_id` → initialize README (see "README Structure Template" below) → update registry → set as active → reply:
+Extract `short_id` → initialize README (see "README Structure Template" below) → update registry → set as active project → reply:
 
-> "✅ Workspace '[X]' created. 📎 https://felo.ai/livedoc/SHORT_ID?from=claw"
+> "✅ Project '[X]' created. 📎 https://felo.ai/livedoc/SHORT_ID?from=claw"
 
-### 3. Task Sync (Mandatory)
+### 3. Task Sync (Mandatory Checklist)
 
-**Iron rule: When the workspace is active, if the user's request requires the Agent to invoke tools to produce new content (search, generate, analyze, etc.), the very first step is always `create-task` — before doing anything else.**
+**Every time the user gives a request that requires the Agent to invoke tools to produce new content, the following checklist must be executed strictly in order. No step may be skipped:**
 
-Decision flow:
-1. User sends a message
-2. Does this message require the Agent to invoke tools to produce new content? (search, generate, collect, analyze, write)
-   - Yes → **immediately `create-task`** → execute → **`update-task` to mark complete**
-   - No → execute directly, no task needed
+```
+□ Step 1: Confirm project — Does the user's request belong to the active project?
+           - If the user mentions a different project/account/niche/client → switch or create the correct project first
+           - If it matches the active project → continue
+□ Step 2: create-task — Create a task under the correct project (status=1)
+□ Step 3: Execute — Invoke tools to complete the user's request
+□ Step 4: update-task — Mark the task as done (status=2)
+□ Step 5: Check README — Did this operation bring any new understanding? If yes, update (see Section 5)
+```
 
-**Requires task creation (invoking tools to produce new content):**
+**When to run this checklist (task required):**
+- "Search for 10 horror niche YouTube videos" → requires search + adding
 - "Collect client info on Mr. Zhang" → requires search + generation
-- "Add 10 horror TikTok videos" → requires search + adding content
 - "Write a competitive analysis report" → requires generation
 - "Search for recent gold price trends" → requires search
 
-**Does NOT require task creation (workspace operations):**
-- "Load Mr. Zhang's workspace" → workspace operation
-- "What's in my workspace?" → viewing workspace
-- "Refresh the workspace" / "Create a new workspace" → workspace management
+**When NOT to run (project management operations):**
+- "Open Mr. Zhang's project" → project operation
+- "What projects do I have?" → viewing all projects
+- "Refresh" / "Create a new project" → project management
 - "Save that report" → saving artifacts
-- "Update the README" / "Rename the workspace" → workspace maintenance
+- "Update the README" / "Rename the project" → project maintenance
 - Chitchat, clarifying questions
 
-**On load:** Pull pending and in-progress tasks:
-```bash
-$SCRIPT tasks SHORT_ID --status 0
-$SCRIPT tasks SHORT_ID --status 1
-```
+---
 
-**Step one — Create task (before doing anything else):**
+**Step 1 Details — Confirm project:**
+
+If the user's message mentions a different project/account/niche/client name, it means a project switch is needed.
+
+Examples:
+- Active project is "horror niche", user says "I also have an account for pet niche, search 10 videos for me" → **must switch to pet niche project first** (if it doesn't exist, ask whether to create it)
+- Active project is "horror niche", user says "keep searching 10 more horror videos" → matches, continue
+
+**Step 2 Details — create-task:**
+
 ```bash
 $SCRIPT create-task SHORT_ID --title "Task description" --status 1 --sort 0 [--operated-by "Agent Name"]
 ```
 Save the returned `task_id` in working memory.
 
 `--title` should be a one-line summary of what the user wants done, e.g.:
+- User says "Search for 10 horror niche YouTube videos" → `--title "Search 10 horror niche YouTube videos"`
 - User says "Collect info on Mr. Zhang" → `--title "Collect client info on Mr. Zhang"`
-- User says "Add 10 horror videos" → `--title "Add 10 horror TikTok trending videos"`
 
 `--operated-by` rules:
 - **Only pass it if the Agent has been given a name** in this session (e.g. an OpenClaw agent with an assigned name)
 - **Omit it if no explicit name** (e.g. a plain Claude Code session)
 
-**Last step — Mark complete (immediately after execution):**
+**Step 4 Details — update-task:**
+
 ```bash
 $SCRIPT update-task SHORT_ID TASK_ID --status 2 [--operated-by "Agent Name"]
 ```
 (`--operated-by` rule same as above — pass it when the Agent has a name.)
 
-Execute silently — do not narrate the task sync to the user. If you forgot to create a task before starting, create it retroactively and mark it DONE immediately. Never skip it.
+**On opening a project:** Pull pending and in-progress tasks:
+```bash
+$SCRIPT tasks SHORT_ID --status 0
+$SCRIPT tasks SHORT_ID --status 1
+```
+
+Execute the entire checklist silently — do not narrate the task sync to the user. If you forgot to create a task before starting, create it retroactively and mark it DONE immediately. Never skip it.
 
 ### 4. Save Artifacts (Ask First)
 
-After producing significant output, ask the user: "Want me to save this to the [project] workspace?"
+After producing significant output, ask the user: "Want me to save this to the project?"
 
 Significant artifacts = research reports, competitive analyses, meeting summaries, generated documents, key data exports. Intermediate drafts do not need to be saved.
 
@@ -192,12 +208,17 @@ Last updated: YYYY-MM-DD
 
 **When to update README — core question: Did this operation bring any new understanding?**
 
-Update (new understanding):
-- When the project is first created — record "what this project is about"
-- When the user expresses preferences or work patterns — record "how the user wants to work" (e.g. collection dimensions, focus areas, format requirements)
-- When the project's nature or direction changes
+**Update if ANY of the following conditions are met:**
+1. User states a niche/direction/goal/style/type → record in `## What This Project Is`
+   - e.g. "I'm doing the horror niche" → update immediately, record "horror niche"
+   - e.g. "This project is mainly B2B SaaS" → update immediately
+2. User expresses a preference/habit/requirement → record in `## User Preferences & Work Patterns`
+   - e.g. "10 results each time is enough" → record collection quantity preference
+   - e.g. "I only want Chinese content" → record language preference
+   - e.g. "Focus on high view count ones" → record filtering criteria
+3. Project has meaningful progress or direction change → update `## Current Progress`
 
-Do NOT update (repeated execution):
+**Do NOT update:**
 - Same-pattern repeated operations (e.g. after collecting info on Mr. Zhang, collecting info on Mr. Li using the same pattern — no update needed)
 - The mere fact of executing an action (generating a document is not worth recording by itself)
 
@@ -214,9 +235,9 @@ Do NOT update (repeated execution):
 **Initialization** (README is empty or missing): Skip step 1, write the full skeleton directly with `update-readme`.
 
 After updating, inform the user:
-> "📝 README updated. 📎 https://felo.ai/livedoc/SHORT_ID?from=claw"
+> "📝 Project memory updated. 📎 https://felo.ai/livedoc/SHORT_ID?from=claw"
 
-### 6. Query Workspace
+### 6. Query Project
 
 Prefer `resources` + `content` (direct read, free) over `retrieve` (LLM-based semantic search, costs money).
 
@@ -228,9 +249,9 @@ $SCRIPT retrieve SHORT_ID --query "question"   # fallback
 
 Synthesize returned content into a direct answer. Do not dump raw results.
 
-### 7. Refresh Workspace
+### 7. Refresh Project
 
-When the user says "refresh", or when the workspace may have been updated externally (by a colleague or another session), re-fetch:
+When the user says "refresh", or when the project may have been updated externally (by a colleague or another session), re-fetch:
 
 ```bash
 $SCRIPT get-readme SHORT_ID
@@ -239,9 +260,9 @@ $SCRIPT tasks SHORT_ID --status 0
 $SCRIPT tasks SHORT_ID --status 1
 ```
 
-Update the in-memory snapshot. Tell the user: "Workspace refreshed." If anything changed, briefly describe the differences (new resources, README updates, new tasks).
+Update the in-memory snapshot. Tell the user: "Project refreshed." If anything changed, briefly describe the differences (new resources, README updates, new tasks).
 
-### 8. List Contents
+### 8. View All Projects
 
 `$SCRIPT resources SHORT_ID`, grouped by type, artifacts newest first.
 
@@ -250,11 +271,11 @@ Update the in-memory snapshot. Tell the user: "Workspace refreshed." If anything
 ## Session State
 
 ```
-ACTIVE_WORKSPACE = { name: "project-x", short_id: "abc123" }
+ACTIVE_PROJECT = { name: "horror-niche", short_id: "abc123" }
 ```
 
-- Set when user loads or creates a workspace; clear when user says "close workspace"
-- If no active workspace and user tries to save/log/query/task: "No active workspace. Which project?"
+- Set when user opens or creates a project; clear when user says "close project"
+- If no active project and user tries to save/log/query/task: "No project open. Which project?"
 
 ## Error Handling
 
@@ -271,4 +292,4 @@ ACTIVE_WORKSPACE = { name: "project-x", short_id: "abc123" }
 - Always use `short_id` for all LiveDoc operations
 - Execute commands immediately — don't describe, do
 - Task sync and README updates are the Agent's responsibility — proactive, not reactive
-- Append workspace link after every write operation
+- Append project link after every write operation
