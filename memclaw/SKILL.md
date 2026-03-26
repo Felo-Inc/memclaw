@@ -33,8 +33,41 @@ The Agent's external brain for projects. Once active, the Agent continuously syn
 In all commands below, `$SCRIPT` refers to:
 
 ```
-node memclaw/scripts/run.mjs
+node ./scripts/run.mjs
 ```
+
+When unsure about a command's options, run `$SCRIPT <command> --help` or just `$SCRIPT --help` to see the full usage.
+
+## Commands Reference
+
+| Command | Description |
+|---------|-------------|
+| `create` | Create a new LiveDoc (`--name` required) |
+| `list` | List all LiveDocs |
+| `update <short_id>` | Update a LiveDoc |
+| `delete <short_id>` | Delete a LiveDoc |
+| `resources <short_id>` | List resources in a LiveDoc |
+| `resource <short_id> <resource_id>` | Get a single resource |
+| `add-doc <short_id>` | Create a text document resource (`--content` required) |
+| `add-urls <short_id>` | Add URL resources (`--urls` required, comma-separated, max 10) |
+| `upload <short_id>` | Upload a file resource (`--file` required, `--convert` optional) |
+| `remove-resource <short_id> <resource_id>` | Delete a resource |
+| `update-resource <short_id> <resource_id>` | Update resource title, snippet, or thumbnail |
+| `content <short_id> <resource_id>` | Get text content of a resource |
+| `download <short_id> <resource_id>` | Download source file to disk |
+| `retrieve <short_id>` | Semantic retrieval (`--query` required; auto-routes if no `--resource-ids`) |
+| `route <short_id>` | Route relevant resource IDs by query (`--query` required) |
+| `ppt-retrieve <short_id>` | PPT page deep retrieval (`--resource-id`, `--page-number`, `--query` required) |
+| `get-readme <short_id>` | Get README content |
+| `update-readme <short_id>` | Create or replace README (`--content` required) |
+| `append-readme <short_id>` | Append content to README (`--content` required) |
+| `delete-readme <short_id>` | Delete README |
+| `tasks <short_id>` | List tasks (filter by `--status`, `--labels`) |
+| `create-task <short_id>` | Create a task (`--title` required; `--status` default 0, `--sort` default 0) |
+| `update-task <short_id> <task_id>` | Partially update a task |
+| `delete-task <short_id> <task_id>` | Delete a task |
+| `task-records <short_id> <task_id>` | List task records (comments + change history) |
+| `add-task-comment <short_id> <task_id>` | Add a comment to a task (`--content` required) |
 
 ## When NOT to Use
 
@@ -182,7 +215,7 @@ Significant artifacts = research reports, competitive analyses, meeting summarie
 |------|---------|
 | Document | `$SCRIPT add-doc SHORT_ID --title "Title" --content "content"` |
 | URL | `$SCRIPT add-urls SHORT_ID --urls "URL"` |
-| File | `$SCRIPT upload SHORT_ID --file ./path --convert` |
+| File | `$SCRIPT upload SHORT_ID --file ./path` |
 
 After saving, reply:
 > "💾 Saved '[Title]' 📎 https://felo.ai/livedoc/SHORT_ID?from=claw"
@@ -264,7 +297,7 @@ Update the in-memory snapshot. Tell the user: "Project refreshed." If anything c
 
 ### 8. View All Projects
 
-`$SCRIPT resources SHORT_ID`, grouped by type, artifacts newest first.
+`$SCRIPT list` — list all projects. To view contents of a specific project, use `$SCRIPT resources SHORT_ID`, grouped by type, artifacts newest first.
 
 ---
 
