@@ -53,6 +53,7 @@ When unsure about a command's options, run `$SCRIPT <command> --help` or just `$
 | `upload <short_id>` | Upload a file resource (`--file` required, `--convert` optional) |
 | `remove-resource <short_id> <resource_id>` | Delete a resource |
 | `update-resource <short_id> <resource_id>` | Update resource title, snippet, or thumbnail |
+| `update-resource-content <short_id> <resource_id>` | Update Markdown content of an `ai_doc` resource (`--content` required) |
 | `content <short_id> <resource_id>` | Get text content of a resource |
 | `download <short_id> <resource_id>` | Download source file to disk |
 | `retrieve <short_id>` | Semantic retrieval (`--query` required; auto-routes if no `--resource-ids`) |
