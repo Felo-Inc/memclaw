@@ -320,6 +320,26 @@ ACTIVE_PROJECT = { name: "horror-niche", short_id: "abc123" }
 | Registry missing | Auto-create with `{"workspaces": {}}` |
 | Ambiguous fuzzy match | List all matches, ask user to pick |
 
+## Integration with Other Felo Skills
+
+The active project's `short_id` can be passed directly to other Felo skills that accept a `livedoc_short_id` parameter:
+
+| Skill | How to use the project `short_id` |
+|-------|-----------------------------------|
+| `felo-slides` | Pass as `livedoc_short_id` when creating a PPT — the generated presentation is saved into the current project automatically |
+| `felo-superAgent` | Pass as the canvas LiveDoc ID — SuperAgent conversations run on top of the current project's knowledge base |
+| `felo-livedoc` | The `short_id` is the LiveDoc ID — all `felo-livedoc` operations apply directly to the current project |
+
+When the user asks to generate a PPT, run a SuperAgent conversation, or perform advanced LiveDoc operations while a project is active, pass `ACTIVE_PROJECT.short_id` to the relevant skill instead of creating a new LiveDoc.
+
+---
+
+## Integration with Other Felo Skills
+
+The active project's `short_id` is a LiveDoc ID that can be shared with other [Felo Skills](https://github.com/Felo-Inc/felo-skills). Some skills accept a `livedoc_short_id` parameter — when a project is active, pass `ACTIVE_PROJECT.short_id` directly so those skills operate within the same project context.
+
+---
+
 ## Important Rules
 
 - Write all content in the user's language — Chinese if they speak Chinese, English if English
