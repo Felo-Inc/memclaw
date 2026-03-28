@@ -70,12 +70,6 @@ When unsure about a command's options, run `$SCRIPT <command> --help` or just `$
 | `task-records <short_id> <task_id>` | List task records (comments + change history) |
 | `add-task-comment <short_id> <task_id>` | Add a comment to a task (`--content` required) |
 
-## When NOT to Use
-
-- Simple chitchat or clarifying questions
-- One-off generation unrelated to any project
-- User has not installed the Felo LiveDoc NPM package
-
 ---
 
 ## Workflows
@@ -319,20 +313,6 @@ ACTIVE_PROJECT = { name: "horror-niche", short_id: "abc123" }
 | LiveDoc ID stale | Offer to re-link or create new |
 | Registry missing | Auto-create with `{"workspaces": {}}` |
 | Ambiguous fuzzy match | List all matches, ask user to pick |
-
-## Integration with Other Felo Skills
-
-The active project's `short_id` can be passed directly to other Felo skills that accept a `livedoc_short_id` parameter:
-
-| Skill | How to use the project `short_id` |
-|-------|-----------------------------------|
-| `felo-slides` | Pass as `livedoc_short_id` when creating a PPT — the generated presentation is saved into the current project automatically |
-| `felo-superAgent` | Pass as the canvas LiveDoc ID — SuperAgent conversations run on top of the current project's knowledge base |
-| `felo-livedoc` | The `short_id` is the LiveDoc ID — all `felo-livedoc` operations apply directly to the current project |
-
-When the user asks to generate a PPT, run a SuperAgent conversation, or perform advanced LiveDoc operations while a project is active, pass `ACTIVE_PROJECT.short_id` to the relevant skill instead of creating a new LiveDoc.
-
----
 
 ## Integration with Other Felo Skills
 
