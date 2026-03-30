@@ -314,9 +314,15 @@ ACTIVE_PROJECT = { name: "horror-niche", short_id: "abc123" }
 | Registry missing | Auto-create with `{"workspaces": {}}` |
 | Ambiguous fuzzy match | List all matches, ask user to pick |
 
-## Integration with Other Felo Skills
+## Integration with Other Felo APIs
 
-The active project's `short_id` is a LiveDoc ID that can be shared with other [Felo Skills](https://github.com/Felo-Inc/felo-skills). Some skills accept a `livedoc_short_id` parameter — when a project is active, pass `ACTIVE_PROJECT.short_id` directly so those skills operate within the same project context.
+The active project's `short_id` is a LiveDoc ID — it is **identical** to `livedoc_short_id` used across all Felo APIs. No conversion needed.
+
+Full API reference: **https://openapi.felo.ai/docs/**
+
+**Universal rule:** Whenever calling any Felo API that accepts a `livedoc_short_id` parameter, always pass `ACTIVE_PROJECT.short_id`. This scopes the result to the current project — for example, a generated PPT will be automatically added as a resource in the project's LiveDoc, and can be retrieved afterwards with `$SCRIPT resources SHORT_ID`.
+
+When the user asks for a capability not covered by `$SCRIPT` (e.g. generating a PPT, running a web search, fetching a YouTube transcript), look up the relevant endpoint at the docs URL above, call it directly using `curl` or the Bash tool with `FELO_API_KEY` from the environment, and pass `livedoc_short_id: ACTIVE_PROJECT.short_id` where the API supports it. After getting a result, save any significant output back to the project using `$SCRIPT add-urls` or `$SCRIPT add-doc`.
 
 ---
 
