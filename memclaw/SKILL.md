@@ -1,6 +1,6 @@
 ---
 name: memclaw
-description: "Use when users need to manage projects backed by Felo LiveDoc — creating, opening, switching projects, saving artifacts, querying history, or managing tasks. Also triggers when calling any Felo Doc API operation: LiveDoc CRUD, resource management (add-doc, add-urls, upload, retrieve, route, content, download, ppt-retrieve), README operations, task management (create/update/delete tasks, task records, comments), or any other Felo LiveDoc API endpoint. Triggers on project-related intent combined with project/client/niche names."
+description: "Use when users need to manage projects backed by Felo LiveDoc — creating, opening, switching projects, saving artifacts, querying history, or managing tasks. Also triggers when calling any Felo Doc API operation: LiveDoc CRUD, resource management (add-doc, add-urls, upload, content, download), README operations, task management (create/update/delete tasks, task records, comments), or any other Felo LiveDoc API endpoint. Triggers on project-related intent combined with project/client/niche names."
 ---
 
 # MemClaw
@@ -56,9 +56,6 @@ When unsure about a command's options, run `$SCRIPT <command> --help` or just `$
 | `update-resource-content <short_id> <resource_id>` | Update Markdown content of an `ai_doc` resource (`--content` required) |
 | `content <short_id> <resource_id>` | Get text content of a resource |
 | `download <short_id> <resource_id>` | Download source file to disk |
-| `retrieve <short_id>` | Semantic retrieval (`--query` required; auto-routes if no `--resource-ids`) |
-| `route <short_id>` | Route relevant resource IDs by query (`--query` required) |
-| `ppt-retrieve <short_id>` | PPT page deep retrieval (`--resource-id`, `--page-number`, `--query` required) |
 | `get-readme <short_id>` | Get README content |
 | `update-readme <short_id>` | Create or replace README (`--content` required) |
 | `append-readme <short_id>` | Append content to README (`--content` required) |
@@ -271,15 +268,16 @@ After updating, inform the user:
 
 ### 6. Query Project
 
-Prefer `resources` + `content` (direct read, free) over `retrieve` (LLM-based semantic search, costs money).
+Use `resources` + `content` to read project knowledge directly.
+`content` caches the resource to `~/.memclaw/cache/{livedocid}/{resource_id}_{ts}.md` and returns the local file path.
+Revalidates against `modified_at` on each call — no manual cache management needed.
 
 ```bash
 $SCRIPT resources SHORT_ID
-$SCRIPT content SHORT_ID RESOURCE_ID
-$SCRIPT retrieve SHORT_ID --query "question"   # fallback
+$SCRIPT content SHORT_ID RESOURCE_ID   # returns local cache path
 ```
 
-Synthesize returned content into a direct answer. Do not dump raw results.
+Read the returned path to get the full content. Synthesize into a direct answer. Do not dump raw results.
 
 ### 7. Refresh Project
 

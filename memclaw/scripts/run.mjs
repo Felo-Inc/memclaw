@@ -87,6 +87,41 @@ async function uploadFormData(apiPath, formData, apiKey, apiBase, timeoutMs) {
   return data;
 }
 
+// ── Cache ──
+
+const CACHE_BASE = path.join(
+  process.env.HOME || process.env.USERPROFILE || '',
+  '.memclaw', 'cache'
+);
+
+async function findCacheEntry(livedocId, resourceId) {
+  const dir = path.join(CACHE_BASE, livedocId);
+  let entries;
+  try { entries = await fs.readdir(dir); } catch { return null; }
+  const prefix = `${resourceId}_`;
+  const match = entries.find(f => f.startsWith(prefix) && f.endsWith('.md'));
+  if (!match) return null;
+  const ts = parseInt(match.slice(prefix.length, -3), 10);
+  if (!Number.isFinite(ts)) return null;
+  return { filePath: path.join(dir, match), cachedAtMs: ts };
+}
+
+async function writeCacheEntry(livedocId, resourceId, content) {
+  const dir = path.join(CACHE_BASE, livedocId);
+  await fs.mkdir(dir, { recursive: true });
+  let entries;
+  try { entries = await fs.readdir(dir); } catch { entries = []; }
+  const prefix = `${resourceId}_`;
+  for (const f of entries) {
+    if (f.startsWith(prefix) && f.endsWith('.md')) {
+      await fs.unlink(path.join(dir, f)).catch(() => {});
+    }
+  }
+  const filePath = path.join(dir, `${resourceId}_${Date.now()}.md`);
+  await fs.writeFile(filePath, content, 'utf8');
+  return filePath;
+}
+
 // ── Formatting ──
 
 function formatLiveDoc(doc) {
@@ -169,11 +204,8 @@ function usage() {
     '  remove-resource <short_id> <resource_id>  Delete a resource',
     '  update-resource <short_id> <resource_id>  Update resource title/snippet/thumbnail',
     '  update-resource-content <short_id> <resource_id>  Update ai_doc resource Markdown content (--content required)',
-    '  retrieve <short_id>   Semantic search (--query required, --resource-ids optional)',
-    '  route <short_id>      Route relevant resources by query (--query required)',
     '  download <short_id> <resource_id>  Download source file to disk',
-    '  content <short_id> <resource_id>   Get text content of a resource',
-    '  ppt-retrieve <short_id>  PPT page deep retrieval (--resource-id, --page-number, --query required)',
+    '  content <short_id> <resource_id>   Get text content of a resource (cached locally)',
     '  get-readme <short_id>    Get README content',
     '  update-readme <short_id> Create or replace README (--content required)',
     '  append-readme <short_id> Append to README (--content required)',
@@ -198,12 +230,6 @@ function usage() {
     '  --urls <urls>         Comma-separated URLs',
     '  --file <path>         File path to upload',
     '  --convert             Convert uploaded file to document',
-    '  --query <text>        Retrieval/route query',
-    '  --resource-ids <ids>  Comma-separated resource IDs to search within (retrieve)',
-    '  --max-resources <n>   Max resources to return (route)',
-    '  --resource-id <id>    PPT resource ID (ppt-retrieve)',
-    '  --page-number <n>     PPT page number, starts from 1 (ppt-retrieve)',
-    '  --max-chunk <n>       Max chunks to return (ppt-retrieve, default 3)',
     '  --expires-in <s>      Presigned URL expiry in seconds (download, default 3600)',
     '  --output <path>       Output file path (download, default: filename from response)',
     '  --status <n>          Task status: 0=TODO, 1=IN_PROGRESS, 2=DONE',
@@ -220,8 +246,7 @@ function parseArgs(argv) {
   const out = {
     action: '', positional: [], name: '', description: '', icon: '',
     keyword: '', page: '', size: '', type: '', content: '', title: '',
-    urls: '', file: '', convert: false, query: '', resourceIds: '', maxResources: '',
-    resourceId: '', pageNumber: '', maxChunk: '', expiresIn: '', output: '',
+    urls: '', file: '', convert: false, expiresIn: '', output: '',
     status: '', sort: '', labels: '', recordType: '', operatedBy: '',
     json: false, timeoutMs: DEFAULT_TIMEOUT_MS, help: false,
   };
@@ -242,12 +267,6 @@ function parseArgs(argv) {
     else if (a === '--title') out.title = argv[++i] || '';
     else if (a === '--urls') out.urls = argv[++i] || '';
     else if (a === '--file') out.file = argv[++i] || '';
-    else if (a === '--query') out.query = argv[++i] || '';
-    else if (a === '--resource-ids') out.resourceIds = argv[++i] || '';
-    else if (a === '--max-resources') out.maxResources = argv[++i] || '';
-    else if (a === '--resource-id') out.resourceId = argv[++i] || '';
-    else if (a === '--page-number') out.pageNumber = argv[++i] || '';
-    else if (a === '--max-chunk') out.maxChunk = argv[++i] || '';
     else if (a === '--expires-in') out.expiresIn = argv[++i] || '';
     else if (a === '--output') out.output = argv[++i] || '';
     else if (a === '--status') out.status = argv[++i] || '';
@@ -444,49 +463,6 @@ async function main() {
         code = 0;
         break;
       }
-      case 'retrieve': {
-        if (!shortId) { console.error('ERROR: short_id is required'); break; }
-        if (!args.query) { console.error('ERROR: --query is required'); break; }
-        spinnerId = startSpinner('Retrieving from knowledge base');
-        const body = { query: args.query };
-        if (args.resourceIds) {
-          body.resource_ids = args.resourceIds.split(',').map(id => id.trim()).filter(Boolean);
-        }
-        const payload = await apiRequest('POST', `/livedocs/${shortId}/resources/retrieve`, body, apiKey, apiBase, timeoutMs);
-        if (json) { console.log(JSON.stringify(payload, null, 2)); }
-        else {
-          const results = payload?.data || [];
-          if (!results.length) { process.stderr.write('No results found.\n'); }
-          else {
-            process.stdout.write(`Found ${results.length} result(s)\n\n`);
-            for (const r of results) process.stdout.write(formatRetrieveResult(r));
-          }
-        }
-        code = 0;
-        break;
-      }
-      case 'route': {
-        if (!shortId) { console.error('ERROR: short_id is required'); break; }
-        if (!args.query) { console.error('ERROR: --query is required'); break; }
-        spinnerId = startSpinner('Routing relevant resources');
-        const body = { query: args.query };
-        if (args.maxResources) {
-          const n = parseInt(args.maxResources, 10);
-          if (Number.isFinite(n) && n > 0) body.max_resources = n;
-        }
-        const payload = await apiRequest('POST', `/livedocs/${shortId}/resources/route`, body, apiKey, apiBase, timeoutMs);
-        if (json) { console.log(JSON.stringify(payload, null, 2)); }
-        else {
-          const resourceIds = payload?.data || [];
-          if (!resourceIds.length) { process.stderr.write('No relevant resources found.\n'); }
-          else {
-            process.stdout.write(`Found ${resourceIds.length} relevant resource(s):\n\n`);
-            for (const id of resourceIds) process.stdout.write(`- ${id}\n`);
-          }
-        }
-        code = 0;
-        break;
-      }
       case 'download': {
         if (!shortId) { console.error('ERROR: short_id is required'); break; }
         if (!resourceId) { console.error('ERROR: resource_id is required'); break; }
@@ -529,33 +505,37 @@ async function main() {
       case 'content': {
         if (!shortId) { console.error('ERROR: short_id is required'); break; }
         if (!resourceId) { console.error('ERROR: resource_id is required'); break; }
+
+        // 查本地缓存
+        const cacheEntry = await findCacheEntry(shortId, resourceId);
+
+        // 获取 resource 元数据拿 modified_at
+        spinnerId = startSpinner('Fetching resource metadata');
+        const resMeta = await apiRequest('GET', `/livedocs/${shortId}/resources/${resourceId}`, null, apiKey, apiBase, timeoutMs);
+        stopSpinner(spinnerId); spinnerId = null;
+        const modifiedAtMs = resMeta?.data?.modified_at ? new Date(resMeta.data.modified_at).getTime() : 0;
+
+        // 缓存有效则直接返回路径
+        if (cacheEntry && cacheEntry.cachedAtMs > modifiedAtMs) {
+          if (json) { console.log(JSON.stringify({ cache_path: cacheEntry.filePath }, null, 2)); }
+          else { process.stdout.write(`${cacheEntry.filePath}\n`); }
+          code = 0;
+          break;
+        }
+
+        // 缓存未命中或已过期，调用 API
         spinnerId = startSpinner('Fetching resource content');
         const payload = await apiRequest('GET', `/livedocs/${shortId}/resources/${resourceId}/content`, null, apiKey, apiBase, timeoutMs);
-        if (json) { console.log(JSON.stringify(payload, null, 2)); }
-        else {
+        if (json) {
           const d = payload?.data;
-          process.stdout.write(`## ${d?.title || '(untitled)'}\n- Type: ${d?.type}\n\n${d?.content || '(empty)'}\n`);
-        }
-        code = 0;
-        break;
-      }
-      case 'ppt-retrieve': {
-        if (!shortId) { console.error('ERROR: short_id is required'); break; }
-        if (!args.resourceId) { console.error('ERROR: --resource-id is required'); break; }
-        if (!args.pageNumber) { console.error('ERROR: --page-number is required'); break; }
-        if (!args.query) { console.error('ERROR: --query is required'); break; }
-        spinnerId = startSpinner('Retrieving PPT page content');
-        const body = { resource_id: args.resourceId, page_number: parseInt(args.pageNumber, 10), query: args.query };
-        if (args.maxChunk) { const n = parseInt(args.maxChunk, 10); if (Number.isFinite(n) && n > 0) body.max_chunk = n; }
-        const payload = await apiRequest('POST', `/livedocs/${shortId}/resources/ppt-retrieve`, body, apiKey, apiBase, timeoutMs);
-        if (json) { console.log(JSON.stringify(payload, null, 2)); }
-        else {
-          const results = payload?.data || [];
-          if (!results.length) { process.stderr.write('No results found.\n'); }
-          else {
-            process.stdout.write(`Found ${results.length} result(s)\n\n`);
-            for (const r of results) process.stdout.write(formatRetrieveResult(r));
-          }
+          const output = `## ${d?.title || '(untitled)'}\n- Type: ${d?.type}\n\n${d?.content || '(empty)'}\n`;
+          const cachePath = await writeCacheEntry(shortId, resourceId, output).catch(() => null);
+          console.log(JSON.stringify({ cache_path: cachePath }, null, 2));
+        } else {
+          const d = payload?.data;
+          const output = `## ${d?.title || '(untitled)'}\n- Type: ${d?.type}\n\n${d?.content || '(empty)'}\n`;
+          const cachePath = await writeCacheEntry(shortId, resourceId, output).catch(() => null);
+          process.stdout.write(`${cachePath}\n`);
         }
         code = 0;
         break;
