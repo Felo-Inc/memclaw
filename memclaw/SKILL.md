@@ -320,9 +320,71 @@ The active project's `short_id` is a LiveDoc ID — it is **identical** to `live
 
 Full API reference: **https://openapi.felo.ai/docs/**
 
-**Universal rule:** Whenever calling any Felo API that accepts a `livedoc_short_id` parameter, always pass `ACTIVE_PROJECT.short_id`. This scopes the result to the current project — for example, a generated PPT will be automatically added as a resource in the project's LiveDoc, and can be retrieved afterwards with `$SCRIPT resources SHORT_ID`.
+**Universal rule:** Whenever calling any Felo API that accepts a `livedoc_short_id` parameter, always pass `ACTIVE_PROJECT.short_id`. This scopes the result to the current project — content generated (e.g. a PPT) will be automatically added as a resource in the project's LiveDoc and can be retrieved with `$SCRIPT resources SHORT_ID`.
 
-When the user asks for a capability not covered by `$SCRIPT` (e.g. generating a PPT, running a web search, fetching a YouTube transcript), look up the relevant endpoint at the docs URL above, call it directly using `curl` or the Bash tool with `FELO_API_KEY` from the environment, and pass `livedoc_short_id: ACTIVE_PROJECT.short_id` where the API supports it. After getting a result, save any significant output back to the project using `$SCRIPT add-urls` or `$SCRIPT add-doc`.
+When the user asks for a capability not covered by `$SCRIPT`, call the relevant Felo API directly using `curl` or the Bash tool with `FELO_API_KEY` from the environment. All endpoints use `Authorization: Bearer $FELO_API_KEY`. After getting a result, save significant output back to the project using `$SCRIPT add-urls` or `$SCRIPT add-doc`.
+
+### Available Felo APIs
+
+#### PPT Task API
+Generate presentation decks from a prompt (async — create then poll).
+
+| Endpoint | Method | Path | Key params |
+|----------|--------|------|------------|
+| List themes | GET | `/v2/ppt-themes` | `lang`, `type`, `keyword` |
+| Create PPT task | POST | `/v2/ppts` | `query`*, `livedoc_short_id`, `ppt_config.ai_theme_id` |
+| Query task status | GET | `/v2/tasks/{task_id}/status` | — |
+| Query task result | GET | `/v2/tasks/{task_id}/historical` | — |
+
+Poll `/historical` every 10s. Terminal statuses: `COMPLETED`/`SUCCESS` (success), `FAILED`/`ERROR`/`EXPIRED`/`CANCELED` (failure). On success use `ppt_url` (fallback `live_doc_url`).
+
+#### SuperAgent API
+AI conversation with web search, scoped to a LiveDoc context.
+
+| Endpoint | Method | Path | Key params |
+|----------|--------|------|------------|
+| Create conversation | POST | `/v2/conversations` | `query`*, `live_doc_short_id`, `selected_resource_ids` |
+| Consume SSE stream | GET | `/v2/conversations/stream/{stream_key}` | `offset` |
+| Follow-up | POST | `/v2/conversations/{thread_short_id}/follow_up` | `query`* |
+| Get conversation | GET | `/v2/conversations/{thread_short_id}` | — |
+
+#### Chat API
+Single-turn web-search-augmented Q&A.
+
+| Endpoint | Method | Path | Key params |
+|----------|--------|------|------------|
+| Chat | POST | `/v2/chat` | `query`* (1–2000 chars) |
+
+Returns `answer`, `resources` (cited sources).
+
+#### Web Fetch API
+Extract content from any URL.
+
+| Endpoint | Method | Path | Key params |
+|----------|--------|------|------------|
+| Extract page | POST | `/v2/web/extract` | `url`*, `output_format` (html/text/markdown), `crawl_mode` (fast/fine), `with_readability` |
+
+#### YouTube Subtitling API
+Fetch subtitles/transcripts from YouTube videos.
+
+| Endpoint | Method | Path | Key params |
+|----------|--------|------|------------|
+| Get subtitles | GET | `/v2/youtube/subtitling` | `video_code`*, `language`, `with_time` |
+
+Returns `title`, `contents[]`.
+
+#### X (Twitter) Search API
+Search and retrieve X/Twitter content.
+
+| Endpoint | Method | Path | Key params |
+|----------|--------|------|------------|
+| Get user info | POST | `/v2/x/user/info` | `usernames`* |
+| Search users | POST | `/v2/x/user/search` | `query`*, `cursor` |
+| Get user tweets | POST | `/v2/x/user/tweets` | `x_user_id` or `username`*, `limit`, `cursor` |
+| Search tweets | POST | `/v2/x/tweet/search` | `query`*, `query_type`, `since_time`, `until_time`, `limit` |
+| Get tweet replies | POST | `/v2/x/tweet/replies` | `tweet_ids`*, `cursor` |
+
+`*` = required
 
 ---
 
