@@ -1,6 +1,6 @@
 ---
 name: memclaw
-description: "Use when users need to manage projects backed by Felo LiveDoc — creating, opening, switching projects, saving artifacts, querying history, or managing tasks. Triggers on project-related intent combined with project/client/niche names, or on 401 UNAUTHORIZED errors from Felo API."
+description: "Use when users need to manage projects backed by Felo LiveDoc — creating, opening, switching projects, saving artifacts, querying history, or managing tasks. Also triggers when calling any Felo Doc API operation: LiveDoc CRUD, resource management (add-doc, add-urls, upload, retrieve, route, content, download, ppt-retrieve), README operations, task management (create/update/delete tasks, task records, comments), or any other Felo LiveDoc API endpoint. Triggers on project-related intent combined with project/client/niche names."
 ---
 
 # MemClaw
@@ -119,7 +119,7 @@ User pastes GitHub install link → execute installation → after completion, a
 ### 1. Open Project
 
 1. Read `~/.memclaw/workspaces.json`, fuzzy-match project name. If not found locally, try `$SCRIPT list --keyword`.
-2. **Found:** Set as active project → `$SCRIPT get-readme SHORT_ID` → present README as project briefing → append link `https://felo.ai/livedoc/SHORT_ID?from=claw`. If README is empty or missing, fall back to `$SCRIPT resources SHORT_ID` to show the resource list.
+2. **Found:** Set as active project (record `is_shared` from the LiveDoc object) → `$SCRIPT get-readme SHORT_ID` → present README as project briefing → append link `https://felo.ai/livedoc/SHORT_ID?from=claw`. If README is empty or missing, fall back to `$SCRIPT resources SHORT_ID` to show the resource list. If `is_shared` is true, add a note: "(read-only — shared project)".
 3. **Not found:** "No project found for '[X]'. Want me to create one?"
 
 ### 2. Create Project
@@ -140,10 +140,10 @@ Extract `short_id` → initialize README (see "README Structure Template" below)
 □ Step 1: Confirm project — Does the user's request belong to the active project?
            - If the user mentions a different project/account/niche/client → switch or create the correct project first
            - If it matches the active project → continue
-□ Step 2: create-task — Create a task under the correct project (status=1)
+□ Step 2: create-task — Skip if ACTIVE_PROJECT.is_shared is true; otherwise create a task (status=1)
 □ Step 3: Execute — Invoke tools to complete the user's request
-□ Step 4: update-task — Mark the task as done (status=2)
-□ Step 5: Check README — Did this operation bring any new understanding? If yes, update (see Section 5)
+□ Step 4: update-task — Skip if ACTIVE_PROJECT.is_shared is true; otherwise mark the task as done (status=2)
+□ Step 5: Check README — Skip if ACTIVE_PROJECT.is_shared is true; otherwise update if new understanding (see Section 5)
 ```
 
 **When to run this checklist (task required):**
@@ -202,6 +202,8 @@ Execute the entire checklist silently — do not narrate the task sync to the us
 
 ### 4. Save Artifacts (Ask First)
 
+If `ACTIVE_PROJECT.is_shared` is true, skip this section entirely — do not ask and do not attempt to save.
+
 After producing significant output, ask the user: "Want me to save this to the project?"
 
 Significant artifacts = research reports, competitive analyses, meeting summaries, generated documents, key data exports. Intermediate drafts do not need to be saved.
@@ -216,6 +218,8 @@ After saving, reply:
 > "💾 Saved '[Title]' 📎 https://felo.ai/livedoc/SHORT_ID?from=claw"
 
 ### 5. README Maintenance
+
+If `ACTIVE_PROJECT.is_shared` is true, skip this section entirely — do not attempt to read or write the README.
 
 The README is the Agent's memory of the project — not a work log. Agent maintains proactively, no need to ask the user.
 
@@ -299,11 +303,12 @@ Update the in-memory snapshot. Tell the user: "Project refreshed." If anything c
 ## Session State
 
 ```
-ACTIVE_PROJECT = { name: "horror-niche", short_id: "abc123" }
+ACTIVE_PROJECT = { name: "horror-niche", short_id: "abc123", is_shared: false }
 ```
 
 - Set when user opens or creates a project; clear when user says "close project"
 - If no active project and user tries to save/log/query/task: "No project open. Which project?"
+- `is_shared` is read from the LiveDoc object returned by `list` or `create`. When `true`, the project is **read-only**: skip all write operations (create-task, update-task, add-doc, add-urls, upload, update-readme, append-readme). Query and retrieval still work normally. If the user tries to write, reply: "This project is shared (read-only) — I can read it but cannot make changes."
 
 ## Error Handling
 
