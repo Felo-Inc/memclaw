@@ -207,7 +207,7 @@ function usage() {
     '  download <short_id> <resource_id>  Download source file to disk',
     '  content <short_id> <resource_id>   Get text content of a resource (cached locally)',
     '  get-readme <short_id>    Get README content',
-    '  update-readme <short_id> Create or replace README (--content required)',
+    '  update-readme <short_id> Create or replace README (--content or --summary required)',
     '  append-readme <short_id> Append to README (--content required)',
     '  delete-readme <short_id> Delete README',
     '  tasks <short_id>         List tasks (--status, --labels optional)',
@@ -226,6 +226,7 @@ function usage() {
     '  --size <n>            Page size',
     '  --type <type>         Resource type filter',
     '  --content <text>      Document/README/comment content',
+    '  --summary <text>      One-line project description (README, max 2000 chars)',
     '  --title <title>       Document/task title',
     '  --urls <urls>         Comma-separated URLs',
     '  --file <path>         File path to upload',
@@ -245,7 +246,7 @@ function usage() {
 function parseArgs(argv) {
   const out = {
     action: '', positional: [], name: '', description: '', icon: '',
-    keyword: '', page: '', size: '', type: '', content: '', title: '',
+    keyword: '', page: '', size: '', type: '', content: '', title: '', summary: '',
     urls: '', file: '', convert: false, expiresIn: '', output: '',
     status: '', sort: '', labels: '', recordType: '', operatedBy: '',
     json: false, timeoutMs: DEFAULT_TIMEOUT_MS, help: false,
@@ -265,6 +266,7 @@ function parseArgs(argv) {
     else if (a === '--type') out.type = argv[++i] || '';
     else if (a === '--content') out.content = argv[++i] || '';
     else if (a === '--title') out.title = argv[++i] || '';
+    else if (a === '--summary') out.summary = argv[++i] || '';
     else if (a === '--urls') out.urls = argv[++i] || '';
     else if (a === '--file') out.file = argv[++i] || '';
     else if (a === '--expires-in') out.expiresIn = argv[++i] || '';
@@ -545,15 +547,22 @@ async function main() {
         spinnerId = startSpinner('Fetching README');
         const payload = await apiRequest('GET', `/livedocs/${shortId}/readme`, null, apiKey, apiBase, timeoutMs);
         if (json) { console.log(JSON.stringify(payload, null, 2)); }
-        else { process.stdout.write(payload?.data?.content || '(empty)\n'); }
+        else {
+          const d = payload?.data;
+          if (d?.summary) process.stdout.write(`Summary: ${d.summary}\n\n`);
+          process.stdout.write(d?.content || '(empty)\n');
+        }
         code = 0;
         break;
       }
       case 'update-readme': {
         if (!shortId) { console.error('ERROR: short_id is required'); break; }
-        if (args.content === undefined || args.content === '') { console.error('ERROR: --content is required'); break; }
+        if (!args.content && !args.summary) { console.error('ERROR: at least --content or --summary is required'); break; }
         spinnerId = startSpinner('Updating README');
-        await apiRequest('PUT', `/livedocs/${shortId}/readme`, { content: args.content }, apiKey, apiBase, timeoutMs);
+        const body = {};
+        if (args.summary) body.summary = args.summary;
+        if (args.content) body.content = args.content;
+        await apiRequest('PUT', `/livedocs/${shortId}/readme`, body, apiKey, apiBase, timeoutMs);
         if (json) { console.log(JSON.stringify({ status: 'ok' }, null, 2)); }
         else { process.stdout.write('README updated.\n'); }
         code = 0;

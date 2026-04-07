@@ -56,8 +56,8 @@ When unsure about a command's options, run `$SCRIPT <command> --help` or just `$
 | `update-resource-content <short_id> <resource_id>` | Update Markdown content of an `ai_doc` resource (`--content` required) |
 | `content <short_id> <resource_id>` | Get text content of a resource |
 | `download <short_id> <resource_id>` | Download source file to disk |
-| `get-readme <short_id>` | Get README content |
-| `update-readme <short_id>` | Create or replace README (`--content` required) |
+| `get-readme <short_id>` | Get README (returns `summary` + `content`) |
+| `update-readme <short_id>` | Create or replace README (`--content` or `--summary` required, at least one) |
 | `append-readme <short_id>` | Append content to README (`--content` required) |
 | `delete-readme <short_id>` | Delete README |
 | `tasks <short_id>` | List tasks (filter by `--status`, `--labels`) |
@@ -220,6 +220,10 @@ If `ACTIVE_PROJECT.is_shared` is true, skip this section entirely — do not att
 
 The README is the Agent's memory of the project — not a work log. Agent maintains proactively, no need to ask the user.
 
+The README has two parts:
+- `summary`: A one-line project description (max 2000 chars). Set it when creating or first understanding the project. Keep it concise — it's the project's elevator pitch.
+- `content`: The full README body (Markdown).
+
 **README Structure Template:**
 ```markdown
 # [Project Name]
@@ -259,9 +263,9 @@ Last updated: YYYY-MM-DD
    - User preferences → `## User Preferences & Work Patterns`
    - Progress changes → replace `## Current Progress` section content
 3. Update `Last updated: YYYY-MM-DD` to today's date
-4. `$SCRIPT update-readme SHORT_ID --content "..."` to write back
+4. `$SCRIPT update-readme SHORT_ID --summary "one-line description" --content "..."` to write back
 
-**Initialization** (README is empty or missing): Skip step 1, write the full skeleton directly with `update-readme`.
+**Initialization** (README is empty or missing): Skip step 1, write the full skeleton directly with `update-readme`, including a `--summary`.
 
 After updating, inform the user:
 > "📝 Project memory updated. 📎 https://felo.ai/livedoc/SHORT_ID?from=claw"
@@ -335,7 +339,7 @@ Generate presentation decks from a prompt (async — create then poll).
 | Endpoint | Method | Path | Key params |
 |----------|--------|------|------------|
 | List themes | GET | `/v2/ppt-themes` | `lang`, `type`, `keyword` |
-| Create PPT task | POST | `/v2/ppts` | `query`*, `livedoc_short_id`, `ppt_config.ai_theme_id` |
+| Create PPT task | POST | `/v2/ppts` | `query`*, `livedoc_short_id`, `resource_ids`, `ppt_config.ai_theme_id` |
 | Query task status | GET | `/v2/tasks/{task_id}/status` | — |
 | Query task result | GET | `/v2/tasks/{task_id}/historical` | — |
 
