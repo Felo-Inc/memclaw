@@ -1,12 +1,10 @@
 # MemClaw
 
-<p align="center">
-  <strong>The AI agent's external brain — persistent project workspaces across sessions.</strong>
-</p>
+**The AI agent's external brain — persistent project workspaces across sessions.**
 
-<p align="center">
-  <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="MIT License"></a>
-</p>
+[![MIT License](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
+
+[Website](https://memclaw.me) · [Install Guide](#install) · [Documentation](https://memclaw.me/docs) · [Get API Key](https://felo.ai/settings/api-keys)
 
 **MemClaw** is a skill for AI coding agents. It gives agents persistent project workspaces — each workspace stores tasks, artifacts, and a living README so any session (or collaborator) can load it and immediately have full context.
 
@@ -15,7 +13,6 @@
 ## What It Does
 
 - **Workspaces** — one project = one workspace, identified by name
-- **Task sync** — agent creates a task before starting work, marks it done when finished; all tracked silently
 - **Artifacts** — save research reports, documents, URLs, and files to the workspace
 - **README memory** — agent maintains a structured project README: background, user preferences, current progress
 - **Query** — retrieve workspace contents by browsing or semantic search
@@ -25,18 +22,19 @@
 
 ## Install
 
-Get your API key from [felo.ai](https://felo.ai) (Settings → API Keys), then set it:
+Get your API key from [felo.ai](https://felo.ai/settings/api-keys), then set it:
 
-```bash
-export FELO_API_KEY="your-api-key-here"    # Linux/macOS
-$env:FELO_API_KEY="your-api-key-here"      # Windows (PowerShell)
+```shell
+export FELO_API_KEY="your-api-key-here" # Linux/macOS
+$env:FELO_API_KEY="your-api-key-here" # Windows (PowerShell)
 ```
 
 The key can also be persisted in `~/.memclaw/env`.
 
+
 ### Claude Code
 
-```bash
+```shell
 # Add the marketplace
 /plugin marketplace add Felo-Inc/memclaw
 
@@ -44,26 +42,20 @@ The key can also be persisted in `~/.memclaw/env`.
 /plugin install memclaw@memclaw
 ```
 
-### ClawHub
-
-```bash
-clawhub install memclaw
-```
-
 ### OpenClaw
 
-```bash
+```shell
 bash <(curl -s https://raw.githubusercontent.com/Felo-Inc/memclaw/main/scripts/openclaw-install.sh)
 ```
 
 ### Manual
 
-```bash
+```shell
 git clone https://github.com/Felo-Inc/memclaw.git
 # Copy the skill folder to your AI agent's skills directory
 # Claude Code: ~/.claude/skills/
-# Gemini CLI:  ~/.gemini/skills/
-# Codex:       ~/.codex/skills/
+# Gemini CLI: ~/.gemini/skills/
+# Codex: ~/.codex/skills/
 cp -r memclaw/memclaw ~/.claude/skills/
 ```
 
@@ -82,6 +74,8 @@ Save that report to the workspace
 
 The agent handles task tracking, artifact saving, and README updates automatically — no extra commands needed.
 
+Learn more at [memclaw.me](https://memclaw.me).
+
 ---
 
 ## How It Works
@@ -92,14 +86,13 @@ The agent handles task tracking, artifact saving, and README updates automatical
 | Registry | `~/.memclaw/workspaces.json`, maps project names to workspace IDs |
 | README | Agent's memory of the project — background, preferences, progress |
 | Artifacts | Key outputs saved to the workspace (reports, docs, URLs, files) |
-| Tasks | Auto-tracked for every substantive action the agent takes |
 
 ---
 
 ## License
 
-MIT — see [LICENSE](./LICENSE) for details.
+MIT — see [LICENSE](LICENSE) for details.
 
 ---
 
-<p align="center">Made with ❤️ by the <a href="https://felo.ai">Felo</a> team</p>
+Made with care by the [Felo](https://felo.ai) team · [memclaw.me](https://memclaw.me)
