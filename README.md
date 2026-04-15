@@ -16,7 +16,7 @@
 </p>
 
 <p align="center">
-  <a href="https://memclaw.me">Website</a> · <a href="#install">Install</a> · <a href="https://memclaw.me/docs">Documentation</a> · <a href="https://felo.ai/settings/api-keys">Get API Key</a> · <a href="#why-memclaw">Why MemClaw?</a>
+  <a href="https://memclaw.me">Website</a> · <a href="#install">Install</a> · <a href="https://memclaw.me/zh-Hans/claw/install">Install Guide</a> · <a href="https://felo.ai/settings/api-keys">Get API Key</a> · <a href="#why-memclaw">Why MemClaw?</a>
 </p>
 
 ---
@@ -149,7 +149,7 @@ Whether it's a bug fix, feature request, or documentation improvement — all co
 ## Community
 
 - **Website**: [memclaw.me](https://memclaw.me)
-- **Documentation**: [memclaw.me/docs](https://memclaw.me/docs)
+- **Install Guide**: [memclaw.me/zh-Hans/claw/install](https://memclaw.me/zh-Hans/claw/install)
 - **Bug Reports**: [GitHub Issues](https://github.com/Felo-Inc/memclaw/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/Felo-Inc/memclaw/discussions)
 
