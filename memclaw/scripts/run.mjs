@@ -204,11 +204,8 @@ function usage() {
     '  remove-resource <short_id> <resource_id>  Delete a resource',
     '  update-resource <short_id> <resource_id>  Update resource title/snippet/thumbnail',
     '  update-resource-content <short_id> <resource_id>  Update Markdown content of an ai_doc resource (--content required)',
-    '  retrieve <short_id>   Semantic search (--query required, --resource-ids optional)',
-    '  route <short_id>      Route relevant resources by query (--query required)',
     '  download <short_id> <resource_id>  Download source file to disk',
     '  content <short_id> <resource_id>   Get text content of a resource',
-    '  ppt-retrieve <short_id>  PPT page deep retrieval (--resource-id, --page-number, --query required)',
     '  get-readme <short_id>    Get README (returns summary + content)',
     '  update-readme <short_id> Create or replace README (--content or --summary required)',
     '  append-readme <short_id> Append to README (--content required)',
@@ -234,12 +231,6 @@ function usage() {
     '  --urls <urls>         Comma-separated URLs',
     '  --file <path>         File path to upload',
     '  --convert             Convert uploaded file to document',
-    '  --query <text>        Retrieval/route query',
-    '  --resource-ids <ids>  Comma-separated resource IDs to search within (retrieve)',
-    '  --max-resources <n>   Max resources to return (route)',
-    '  --resource-id <id>    PPT resource ID (ppt-retrieve)',
-    '  --page-number <n>     PPT page number, starts from 1 (ppt-retrieve)',
-    '  --max-chunk <n>       Max chunks to return (ppt-retrieve, default 3)',
     '  --expires-in <s>      Presigned URL expiry in seconds (download, default 3600)',
     '  --output <path>       Output file path (download, default: filename from response)',
     '  --status <n>          Task status: 0=TODO, 1=IN_PROGRESS, 2=DONE',
@@ -256,8 +247,7 @@ function parseArgs(argv) {
   const out = {
     action: '', positional: [], name: '', description: '', icon: '',
     keyword: '', page: '', size: '', type: '', content: '', title: '', summary: '',
-    urls: '', file: '', convert: false, query: '', resourceIds: '', maxResources: '',
-    resourceId: '', pageNumber: '', maxChunk: '', expiresIn: '', output: '',
+    urls: '', file: '', convert: false, expiresIn: '', output: '',
     status: '', sort: '', labels: '', recordType: '', operatedBy: '',
     json: false, timeoutMs: DEFAULT_TIMEOUT_MS, help: false,
   };
@@ -279,12 +269,6 @@ function parseArgs(argv) {
     else if (a === '--summary') out.summary = argv[++i] || '';
     else if (a === '--urls') out.urls = argv[++i] || '';
     else if (a === '--file') out.file = argv[++i] || '';
-    else if (a === '--query') out.query = argv[++i] || '';
-    else if (a === '--resource-ids') out.resourceIds = argv[++i] || '';
-    else if (a === '--max-resources') out.maxResources = argv[++i] || '';
-    else if (a === '--resource-id') out.resourceId = argv[++i] || '';
-    else if (a === '--page-number') out.pageNumber = argv[++i] || '';
-    else if (a === '--max-chunk') out.maxChunk = argv[++i] || '';
     else if (a === '--expires-in') out.expiresIn = argv[++i] || '';
     else if (a === '--output') out.output = argv[++i] || '';
     else if (a === '--status') out.status = argv[++i] || '';
@@ -493,49 +477,6 @@ async function main() {
         code = 0;
         break;
       }
-      case 'retrieve': {
-        if (!shortId) { console.error('ERROR: short_id is required'); break; }
-        if (!args.query) { console.error('ERROR: --query is required'); break; }
-        spinnerId = startSpinner('Retrieving from knowledge base');
-        const body = { query: args.query };
-        if (args.resourceIds) {
-          body.resource_ids = args.resourceIds.split(',').map(id => id.trim()).filter(Boolean);
-        }
-        const payload = await apiRequest('POST', `/livedocs/${shortId}/resources/retrieve`, body, apiKey, apiBase, timeoutMs);
-        if (json) { console.log(JSON.stringify(payload, null, 2)); }
-        else {
-          const results = payload?.data || [];
-          if (!results.length) { process.stderr.write('No results found.\n'); }
-          else {
-            process.stdout.write(`Found ${results.length} result(s)\n\n`);
-            for (const r of results) process.stdout.write(formatRetrieveResult(r));
-          }
-        }
-        code = 0;
-        break;
-      }
-      case 'route': {
-        if (!shortId) { console.error('ERROR: short_id is required'); break; }
-        if (!args.query) { console.error('ERROR: --query is required'); break; }
-        spinnerId = startSpinner('Routing relevant resources');
-        const body = { query: args.query };
-        if (args.maxResources) {
-          const n = parseInt(args.maxResources, 10);
-          if (Number.isFinite(n) && n > 0) body.max_resources = n;
-        }
-        const payload = await apiRequest('POST', `/livedocs/${shortId}/resources/route`, body, apiKey, apiBase, timeoutMs);
-        if (json) { console.log(JSON.stringify(payload, null, 2)); }
-        else {
-          const resourceIds = payload?.data || [];
-          if (!resourceIds.length) { process.stderr.write('No relevant resources found.\n'); }
-          else {
-            process.stdout.write(`Found ${resourceIds.length} relevant resource(s):\n\n`);
-            for (const id of resourceIds) process.stdout.write(`- ${id}\n`);
-          }
-        }
-        code = 0;
-        break;
-      }
       case 'download': {
         if (!shortId) { console.error('ERROR: short_id is required'); break; }
         if (!resourceId) { console.error('ERROR: resource_id is required'); break; }
@@ -612,27 +553,6 @@ async function main() {
 
         if (json) { console.log(JSON.stringify(payload, null, 2)); }
         else { process.stdout.write(output); }
-        code = 0;
-        break;
-      }
-      case 'ppt-retrieve': {
-        if (!shortId) { console.error('ERROR: short_id is required'); break; }
-        if (!args.resourceId) { console.error('ERROR: --resource-id is required'); break; }
-        if (!args.pageNumber) { console.error('ERROR: --page-number is required'); break; }
-        if (!args.query) { console.error('ERROR: --query is required'); break; }
-        spinnerId = startSpinner('Retrieving PPT page content');
-        const body = { resource_id: args.resourceId, page_number: parseInt(args.pageNumber, 10), query: args.query };
-        if (args.maxChunk) { const n = parseInt(args.maxChunk, 10); if (Number.isFinite(n) && n > 0) body.max_chunk = n; }
-        const payload = await apiRequest('POST', `/livedocs/${shortId}/resources/ppt-retrieve`, body, apiKey, apiBase, timeoutMs);
-        if (json) { console.log(JSON.stringify(payload, null, 2)); }
-        else {
-          const results = payload?.data || [];
-          if (!results.length) { process.stderr.write('No results found.\n'); }
-          else {
-            process.stdout.write(`Found ${results.length} result(s)\n\n`);
-            for (const r of results) process.stdout.write(formatRetrieveResult(r));
-          }
-        }
         code = 0;
         break;
       }
