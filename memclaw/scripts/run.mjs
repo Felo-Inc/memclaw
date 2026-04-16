@@ -87,7 +87,7 @@ async function uploadFormData(apiPath, formData, apiKey, apiBase, timeoutMs) {
   return data;
 }
 
-// ── Cache ──
+// ── Cache (internal optimization, does not change command output) ──
 
 const CACHE_BASE = path.join(
   process.env.HOME || process.env.USERPROFILE || '',
@@ -203,10 +203,10 @@ function usage() {
     '  upload <short_id>     Upload file (--file required, --convert optional)',
     '  remove-resource <short_id> <resource_id>  Delete a resource',
     '  update-resource <short_id> <resource_id>  Update resource title/snippet/thumbnail',
-    '  update-resource-content <short_id> <resource_id>  Update ai_doc resource Markdown content (--content required)',
+    '  update-resource-content <short_id> <resource_id>  Update Markdown content of an ai_doc resource (--content required)',
     '  download <short_id> <resource_id>  Download source file to disk',
-    '  content <short_id> <resource_id>   Get text content of a resource (cached locally)',
-    '  get-readme <short_id>    Get README content',
+    '  content <short_id> <resource_id>   Get text content of a resource',
+    '  get-readme <short_id>    Get README (returns summary + content)',
     '  update-readme <short_id> Create or replace README (--content or --summary required)',
     '  append-readme <short_id> Append to README (--content required)',
     '  delete-readme <short_id> Delete README',
@@ -290,6 +290,18 @@ function parseArgs(argv) {
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args.help || !args.action) { usage(); process.exit(args.help ? 0 : 1); }
+
+  // Auto-load env from ~/.memclaw/env if FELO_API_KEY not set
+  if (!process.env.FELO_API_KEY) {
+    const envPath = path.join(process.env.HOME || process.env.USERPROFILE || '', '.memclaw', 'env');
+    try {
+      const envContent = await fs.readFile(envPath, 'utf-8');
+      for (const line of envContent.split('\n')) {
+        const match = line.match(/^([A-Z_]+)=["']?([^"'\s]+)["']?/);
+        if (match) process.env[match[1]] = match[2];
+      }
+    } catch {}
+  }
 
   const apiKey = process.env.FELO_API_KEY?.trim();
   if (!apiKey) { console.error('ERROR: FELO_API_KEY not set'); process.exit(1); }
@@ -508,37 +520,39 @@ async function main() {
         if (!shortId) { console.error('ERROR: short_id is required'); break; }
         if (!resourceId) { console.error('ERROR: resource_id is required'); break; }
 
-        // 查本地缓存
+        // Check local cache first
         const cacheEntry = await findCacheEntry(shortId, resourceId);
-
-        // 获取 resource 元数据拿 modified_at
-        spinnerId = startSpinner('Fetching resource metadata');
-        const resMeta = await apiRequest('GET', `/livedocs/${shortId}/resources/${resourceId}`, null, apiKey, apiBase, timeoutMs);
-        stopSpinner(spinnerId); spinnerId = null;
-        const modifiedAtMs = resMeta?.data?.modified_at ? new Date(resMeta.data.modified_at).getTime() : 0;
-
-        // 缓存有效则直接返回路径
-        if (cacheEntry && cacheEntry.cachedAtMs > modifiedAtMs) {
-          if (json) { console.log(JSON.stringify({ cache_path: cacheEntry.filePath }, null, 2)); }
-          else { process.stdout.write(`${cacheEntry.filePath}\n`); }
-          code = 0;
-          break;
+        if (cacheEntry) {
+          // Verify cache freshness against resource metadata
+          try {
+            spinnerId = startSpinner('Checking resource freshness');
+            const resMeta = await apiRequest('GET', `/livedocs/${shortId}/resources/${resourceId}`, null, apiKey, apiBase, timeoutMs);
+            stopSpinner(spinnerId); spinnerId = null;
+            const modifiedAtMs = resMeta?.data?.modified_at ? new Date(resMeta.data.modified_at).getTime() : 0;
+            if (cacheEntry.cachedAtMs > modifiedAtMs) {
+              // Cache is fresh — read cached content and output it directly
+              const cachedContent = await fs.readFile(cacheEntry.filePath, 'utf8');
+              process.stdout.write(cachedContent);
+              code = 0;
+              break;
+            }
+          } catch {
+            // Metadata check failed, fall through to full fetch
+            stopSpinner(spinnerId); spinnerId = null;
+          }
         }
 
-        // 缓存未命中或已过期，调用 API
+        // Cache miss or stale — fetch from API
         spinnerId = startSpinner('Fetching resource content');
         const payload = await apiRequest('GET', `/livedocs/${shortId}/resources/${resourceId}/content`, null, apiKey, apiBase, timeoutMs);
-        if (json) {
-          const d = payload?.data;
-          const output = `## ${d?.title || '(untitled)'}\n- Type: ${d?.type}\n\n${d?.content || '(empty)'}\n`;
-          const cachePath = await writeCacheEntry(shortId, resourceId, output).catch(() => null);
-          console.log(JSON.stringify({ cache_path: cachePath }, null, 2));
-        } else {
-          const d = payload?.data;
-          const output = `## ${d?.title || '(untitled)'}\n- Type: ${d?.type}\n\n${d?.content || '(empty)'}\n`;
-          const cachePath = await writeCacheEntry(shortId, resourceId, output).catch(() => null);
-          process.stdout.write(`${cachePath}\n`);
-        }
+        const d = payload?.data;
+        const output = `## ${d?.title || '(untitled)'}\n- Type: ${d?.type}\n\n${d?.content || '(empty)'}\n`;
+
+        // Write to cache silently
+        await writeCacheEntry(shortId, resourceId, output).catch(() => {});
+
+        if (json) { console.log(JSON.stringify(payload, null, 2)); }
+        else { process.stdout.write(output); }
         code = 0;
         break;
       }
