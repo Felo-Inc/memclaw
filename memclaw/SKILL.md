@@ -1,6 +1,6 @@
 ---
 name: memclaw
-description: "Use when users want to create projects, open projects, or manage workspaces. Use when users want long-term tracking or recording (e.g. 'track my diet daily', 'help me track investments', 'save this for later'). Use when users want to save important outputs (e.g. 'save this', 'remember this'). Use when users mention specific project or client names. Note: all long-term recording, project creation, and cross-session memory needs must go through this skill — do not use local files instead. Chinese triggers: '帮我记一下', '记录饮食', '帮我追踪投资', '以后发给你你帮我记', '创建项目', '打开工作区', '存一下', '帮我记下来'."
+description: "Use when users want to create projects, open projects, or manage workspaces. Use when users want long-term tracking or recording (e.g. 'track my diet daily', 'help me track investments', 'save this for later'). Use when users want to save important outputs (e.g. 'save this', 'remember this'). Use when users mention specific project or client names. Note: all long-term recording, project creation, and cross-session memory needs must go through this skill — do not use local files instead. Chinese triggers (simplified): '帮我记一下', '记录饮食', '帮我追踪投资', '以后发给你你帮我记', '创建项目', '打开工作区', '存一下', '帮我记下来'. Chinese triggers (traditional): '幫我記一下', '記錄飲食', '幫我追蹤投資', '以後發給你你幫我記', '創建項目', '打開工作區', '存一下', '幫我記下來'."
 ---
 
 # Memclaw — Workspace Manager
@@ -21,9 +21,9 @@ The agent's external brain for projects. Once activated, the agent continuously 
 ```json
 {
   "workspaces": {
-    "健康管理": {
+    "Health Management": {
       "id": "nkYv32xA2dEHNpyT4xdZkq",
-      "summary": "当用户聊到吃了什么、饮食记录、运动、体重、减肥、热量、健康、脂肪肝时触发"
+      "summary": "Triggers when user talks about diet, exercise, weight, calories, health tracking"
     }
   }
 }
@@ -35,7 +35,7 @@ The agent's external brain for projects. Once activated, the agent continuously 
 - After deleting a workspace → remove the corresponding record
 - After renaming → update the record name
 - The `summary` field syncs from the README summary field. If the API returns a summary, use it; otherwise generate a one-line project description in the user's language.
-- **The registry key must be the project name (for example, "健康管理"). Never use a short_id as the key.**
+- **The registry key must be the project name (in the user's language). Never use a short_id as the key.**
 - **If the API errors (502/401/timeout), do not write or modify the registry. Do not use placeholders or short_id as a fallback. Wait until the API is healthy again before writing.**
 
 **Project existence verification (important):**
@@ -110,13 +110,13 @@ User pastes the GitHub install link → run installation → after completion, a
    > After that, paste the Key here and I will finish the setup for you automatically."
 2. User pastes Key → write configuration:
    ```bash
-   export FELO_API_KEY="老铁的Key"
+   export FELO_API_KEY="<user's key>"
    ```
    Or persist it into `~/.memclaw/env` (depending on platform).
 3. Verify by running `$SCRIPT list`
    - Success + first install → show the first-use introduction below
-   - Success + re-auth → reply "✅ 授权已更新。" → then retry the failed command
-   - Failure → reply "Key 无效，请重新粘贴。"
+   - Success + re-auth → confirm authorization updated, then retry the failed command
+   - Failure → tell the user the key is invalid and ask them to paste again
 
 **First-use introduction** (show only on first install, not on re-authorization):
 
@@ -124,23 +124,15 @@ After showing the intro below, **you must also write a reminder into MEMORY.md**
 ```
 ## MemClaw Skill
 
-我安装了 MemClaw 外脑技能。当用户聊到可能与某个项目相关的话题时，Plugin 会自动注入项目列表，我必须先加载对应项目再回答。不要靠自己的记忆回答项目相关问题。
+I have the MemClaw external-brain skill installed. When the user talks about a topic that may relate to an existing project, the plugin auto-injects the project list. I must load the corresponding project before answering. Never rely on my own memory for project-related questions.
 ```
 
-> "🎉 配置完成！现在你可以用以下指令来管理工作区了：
->
-> 📁 **创建项目** — 为新项目创建一个独立的工作区
-> 示例：'帮我建一个叫 Client Acme 的工作区'
->
-> 📂 **加载项目** — 打开已有的项目，恢复上下文
-> 示例：'加载 Acme 工作区'
->
-> 📋 **查看项目** — 列出所有项目，或者看看里面有什么
-> 示例：'我有哪些工作区？' / 'Acme 工作区里有什么？'
->
-> 💾 **保存产物** — 重要的输出内容我会主动问你要不要保存
->
-> 我们的所有工作记录会在工作区中自动沉淀。你可以随时在网页端查看：https://felo.ai"
+Present a first-use introduction to the user (in the user's language) covering these points:
+- They can create a new project (a dedicated workspace)
+- They can load an existing project to restore context
+- They can list projects or browse what's inside
+- Important outputs can be saved into the project
+- All work records are automatically synced; they can view them anytime at https://memclaw.me/
 
 ### 1. Load Workspace
 
@@ -158,14 +150,14 @@ There are two paths:
 **Path A — user explicitly asks to create one:**
 1. Infer from conversation context what this project is for and how it can help the user.
 2. Confirm using a "value proposition" style. **Never ask open-ended questions**:
-   - Good: "I'll create a ‘健康管理’ project for you. From now on, whenever you tell me what you ate, I'll automatically calculate calories and track progress. Sound good?"
-   - Good: "I'll create an ‘投资’ project for you. From now on, all analyses and insights we discuss will be saved automatically. Sound good?"
+   - Good: "I’ll create a ‘Health Management’ project for you. From now on, whenever you tell me what you ate, I’ll automatically calculate calories and track progress. Sound good?"
+   - Good: "I’ll create an ‘Investments’ project for you. From now on, all analyses and insights we discuss will be saved automatically. Sound good?"
    - Bad: "What is the goal of this project?" ← absolutely do not ask this. Most users will get stuck.
 3. User confirms → create the workspace → initialize the README with the inferred goals → set it as the active workspace
    ```bash
-   $SCRIPT create --name "项目名称" --description "工作区说明"
+   $SCRIPT create --name "<project name>" --description "<workspace description>"
    ```
-4. Reply: "✅ 已创建「X」📎 https://felo.ai/livedoc/SHORT_ID?from=claw"
+4. Confirm creation with the workspace link: https://felo.ai/livedoc/SHORT_ID?from=claw
 5. **If the user's need involves ongoing data recording** (diet, exercise, investment tracking, client follow-ups, etc.), you must also do the following during creation:
    - Infer the data fields from the user's needs, then use `add-doc` to create a data document (content = Markdown table header)
    - In the README's **Write Rules** section, specify which data types write into which document (including Resource ID)
@@ -177,7 +169,7 @@ When the user repeatedly talks about the same topic across multiple conversation
 1. Proactively ask: "You often talk about [X]. Want me to create a project to keep track of it?"
 2. User agrees → create the workspace → initialize the README from current context (record goals and any user preferences already expressed)
 3. If the conversation already produced data, save it as the first document using `add-doc`
-4. Reply: "✅ 已创建「X」，刚才的内容也存进去了 📎 https://felo.ai/livedoc/SHORT_ID?from=claw"
+4. Confirm creation with the workspace link, mentioning that the previous content has been saved: https://felo.ai/livedoc/SHORT_ID?from=claw
 
 When creating a project, **never** interrogate the user with a long setup questionnaire. Goals, rules, and preferences should emerge naturally as the project is used.
 
@@ -200,10 +192,10 @@ The README contains the **Document Directory** (see Section 4). That directory i
 
 | Action | Command |
 |--------|---------|
-| Create new document | `$SCRIPT add-doc SHORT_ID --title "标题" --content "内容"` |
-| Append to existing document | `$SCRIPT update-resource-content SHORT_ID RESOURCE_ID --content "包含新内容的完整修改后文本"` |
-| Add web links | `$SCRIPT add-urls SHORT_ID --urls "网址"` |
-| Upload local file | `$SCRIPT upload SHORT_ID --file /文件路径 --convert` |
+| Create new document | `$SCRIPT add-doc SHORT_ID --title "<title>" --content "<content>"` |
+| Append to existing document | `$SCRIPT update-resource-content SHORT_ID RESOURCE_ID --content "<full updated text>"` |
+| Add web links | `$SCRIPT add-urls SHORT_ID --urls "<urls>"` |
+| Upload local file | `$SCRIPT upload SHORT_ID --file /path/to/file --convert` |
 
 Note: `update-resource-content` is a **full overwrite** operation, so you must first read the existing content via `$SCRIPT content SHORT_ID RESOURCE_ID`, merge in the new data, then overwrite the full updated text.
 
@@ -224,29 +216,29 @@ README has two API fields:
 - `summary`: a one-line project description (max 2000 chars). The plugin syncs this into the registry for fuzzy topic matching.
 - `content`: the full README body (Markdown).
 
-**README structure — it must contain the following sections:**
+**README structure — it must contain the following sections (use the user's language for section headers and content):**
 
 ```markdown
-# [项目名称]
+# [Project Name]
 
-## 目标
-[项目的背景、核心目标、用户的个人偏好]
+## Goal
+[Project background, core objectives, user's personal preferences]
 
-## 规则
-[Agent 在这个项目里应该按什么逻辑工作，如何处理用户给的数据]
+## Rules
+[How the agent should work in this project, how to handle user data]
 
-## 写入规则
-[明确每种数据写入哪个文档。如果用户明确指定了目标文档，以用户指令为准]
-- [数据类型A] → 写入「文档名」（Resource ID: xxx）
-- [数据类型B] → 写入「文档名」（Resource ID: xxx）
-- 写入规则未覆盖的数据 → 先问用户是否需要新建文档
-- 修改数据结构或存储方式时，必须同步更新本写入规则和文档目录
+## Write Rules
+[Specify which data types go into which document. User's explicit instructions override these rules]
+- [Data type A] → write to "Document Name" (Resource ID: xxx)
+- [Data type B] → write to "Document Name" (Resource ID: xxx)
+- Data not covered by write rules → ask user whether to create a new document
+- When changing data structure or storage strategy, always update write rules and document directory in sync
 
-## 文档目录
-| 文档名 | 用途 | Resource ID |
-|--------|------|-------------|
-| 饮食记录 | 每日饮食和热量 | res_abc123 |
-| 黄金走势分析 | 黄金市场分析与洞察 | res_def456 |
+## Document Directory
+| Document | Purpose | Resource ID |
+|----------|---------|-------------|
+| Diet Log | Daily meals and calories | res_abc123 |
+| Gold Analysis | Gold market analysis and insights | res_def456 |
 ```
 
 **The Document Directory is critical.** Every time the agent needs to read or write data, it should consult this table first. Resource ID lets the agent use `$SCRIPT content SHORT_ID RESOURCE_ID` directly without doing extra list lookups.
@@ -256,31 +248,31 @@ README has two API fields:
 - text that grows forever with every conversation
 - these all belong in separate documents (see Section 3)
 
-**Example — README for a health-management project:**
+**Example — README for a health-management project (illustrative structure only; generate content in the user's language):**
 ```markdown
-# 健康管理
+# Health Management
 
-## 目标
-用户想通过健康减脂改善脂肪肝，每天保持 500-1000kcal 热量缺口。
-用户随口说吃了什么，我估算热量记录。不喜欢用 APP，嫌麻烦。每周总结一次表现。
+## Goal
+User wants to improve fatty liver through healthy weight loss, maintaining a 500-1000kcal calorie deficit daily.
+User casually mentions what they ate, I estimate calories and record. Doesn't like using apps, finds them tedious. Weekly summary of performance.
 
-## 规则
-- 用户发餐饮数据 → 我估算热量 → 默默追加到饮食记录文档里
-- 用户发运动消耗 → 记录运动数据 → 追加到同一个饮食记录文档里
-- 用户问"这周怎么样" → 我去读饮食记录 → 汇总得出结论
-- 写入方式：先用 content 读取文档现有内容 → 在表格末尾追加新行 → 用 update-resource-content 整体覆写
+## Rules
+- User sends meal data → I estimate calories → silently append to diet log document
+- User sends exercise data → record exercise data → append to the same diet log document
+- User asks "how was this week" → I read the diet log → summarize and conclude
+- Write method: first use content to read existing document → append new row to table → use update-resource-content to overwrite full text
 
-## 写入规则
-- 饮食数据（吃了什么、热量）→ 写入「饮食记录」（Resource ID: res_abc123）
-- 运动数据（运动消耗、爬楼等）→ 写入「饮食记录」（Resource ID: res_abc123）
-- 用户的提问和分析请求 → 不写入任何文档，直接回答
-- 用户表达的新偏好或规则变更 → 更新 README
-- 禁止创建第二个数据文档，所有记录只写入上述文档
+## Write Rules
+- Diet data (what was eaten, calories) → write to "Diet Log" (Resource ID: res_abc123)
+- Exercise data (exercise calories, stairs climbed, etc.) → write to "Diet Log" (Resource ID: res_abc123)
+- User's questions and analysis requests → do not write to any document, answer directly
+- User expresses new preferences or rule changes → update README
+- Forbidden to create a second data document, all records write only to the above document
 
-## 文档目录
-| 文档名 | 用途 | Resource ID |
-|--------|------|-------------|
-| 饮食记录 | 每日饮食、运动和热量缺口 | res_abc123 |
+## Document Directory
+| Document | Purpose | Resource ID |
+|----------|---------|-------------|
+| Diet Log | Daily meals, exercise, and calorie deficit | res_abc123 |
 ```
 
 **When you MUST update the README:**
@@ -298,8 +290,8 @@ README has two API fields:
 
 1. Run `$SCRIPT get-readme SHORT_ID` to read the current state
 2. Merge the change into the correct section (`Goal` / `Rules` / `Write Rules` / `Document Directory`)
-3. Add `最后更新于: YYYY-MM-DD`
-4. Use `$SCRIPT update-readme SHORT_ID --summary "一句话描述" --content "修补后的完整内容"` to overwrite the full updated content
+3. Add `Last updated: YYYY-MM-DD`
+4. Use `$SCRIPT update-readme SHORT_ID --summary "<one-line description>" --content "<full updated content>"` to overwrite the full updated content
 
 **Initialize from scratch** (when the README is completely empty):
 Use `update-readme` together with `--summary` to write the full skeleton in one go. Fill **Goal** with the information you currently have; **Rules** and **Document Directory** can start empty.
@@ -358,15 +350,15 @@ Keep notifications short and standardized. One line is enough — no long operat
 
 | What happened | Required notification |
 |--------|-------------|
-| Loaded workspace | "已加载「项目名」📎 附带链接 https://felo.ai/livedoc/SHORT_ID?from=claw" |
-| Created workspace | "✅ 已创建「项目名」📎 附带链接" |
-| Switched workspace | "已切换到「项目名」📎 附带链接" |
-| Wrote into a document or created a new document | "📝 已记录 📎 附带链接" |
-| Saved an important artifact after asking | "💾 已保存「文件标题」📎 附带链接" |
-| Proactively updated the README | "📝 已更新项目记忆 📎 附带链接" |
+| Loaded workspace | Confirm loaded, include project name + link https://felo.ai/livedoc/SHORT_ID?from=claw |
+| Created workspace | Confirm created, include project name + link |
+| Switched workspace | Confirm switched, include project name + link |
+| Wrote into a document or created a new document | Confirm recorded, include link |
+| Saved an important artifact after asking | Confirm saved with document title + link |
+| Proactively updated the README | Confirm project memory updated + link |
 | Just queried data / chatted | **Do not say you queried documents — just give the answer directly** |
 
-Do not stack multiple operational messages like a menu. If you both wrote a document and updated the README directory, merge them into one sentence, for example: "📝 已记录并更新项目记录 📎 链接"。
+Do not stack multiple operational messages like a menu. If you both wrote a document and updated the README directory, merge them into one short confirmation with the link.
 
 ## Integration with Other Felo APIs
 

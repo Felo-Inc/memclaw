@@ -4,7 +4,8 @@
 
 set -euo pipefail
 
-SKILLS_DIR="${HOME}/.openclaw/workspace/skills"
+GLOBAL_SKILLS_DIR="${HOME}/.openclaw/skills"
+WORKSPACE_SKILLS_DIR="${HOME}/.openclaw/workspace/skills"
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 DRY_RUN=false
 
@@ -17,9 +18,10 @@ skipped=0
 while IFS= read -r skill_md; do
   skill_dir="$(dirname "$skill_md")"
   skill_name="$(basename "$skill_dir")"
-  target="${SKILLS_DIR}/${skill_name}"
+  global_target="${GLOBAL_SKILLS_DIR}/${skill_name}"
+  workspace_target="${WORKSPACE_SKILLS_DIR}/${skill_name}"
 
-  if [[ -e "$target" ]]; then
+  if [[ -e "$workspace_target" ]]; then
     skipped=$((skipped + 1))
     continue
   fi
@@ -27,8 +29,9 @@ while IFS= read -r skill_md; do
   if $DRY_RUN; then
     echo "  [dry-run] would install: $skill_name"
   else
-    mkdir -p "$SKILLS_DIR"
-    ln -sf "$skill_dir" "$target"
+    mkdir -p "$GLOBAL_SKILLS_DIR" "$WORKSPACE_SKILLS_DIR"
+    cp -r "$skill_dir" "$global_target"
+    ln -sf "$global_target" "$workspace_target"
     echo "  ✅ installed: $skill_name"
   fi
   installed=$((installed + 1))
@@ -40,5 +43,14 @@ if $DRY_RUN; then
 else
   echo ""
   echo "Done. Installed $installed skill(s). ($skipped already existed)"
-  echo "Restart OpenClaw (openclaw gateway restart) to pick up new skills."
+  if [[ $installed -gt 0 ]]; then
+    echo ""
+    echo "Restarting OpenClaw gateway..."
+    openclaw gateway restart
+    echo ""
+    echo "MemClaw is ready! Try these to get started:"
+    echo "   - Create a new project"
+    echo "   - Track or record something for later"
+    echo "   - Open your workspace"
+  fi
 fi
