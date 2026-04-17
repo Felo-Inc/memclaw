@@ -30,12 +30,13 @@ The agent's external brain for projects. Once activated, the agent continuously 
 ```
 
 **Registry maintenance rules:**
-- After creating a workspace → add a record with `id` and `summary`
-- After loading a workspace → if it is not already in the registry, add it
-- After deleting a workspace → remove the corresponding record
-- After renaming → update the record name
-- The `summary` field syncs from the README summary field. If the API returns a summary, use it; otherwise generate a one-line project description in the user's language.
-- **The registry key must be the project name (in the user's language). Never use a short_id as the key.**
+- **Full sync: every time `$SCRIPT list` is executed (regardless of reason — verifying Key, manual list, refreshing workspace, or any other scenario), take the full list of LiveDocs returned and overwrite `~/.memclaw/workspaces.json` entirely.** If the registry file does not exist, create it first.
+- **Single-item updates for operations that don't trigger a full list:**
+  - After `create` → add the new record to the registry
+  - After `delete` → remove the corresponding record from the registry
+  - After `update` (rename) → update the record key in the registry
+  - After `list --keyword` (e.g. during workspace loading) → merge the returned results into the registry (add or update matching entries, do not remove others)
+- For each registry entry, the key must be the project name (in the user's language), with `id` (short_id) and `summary` (from the API's description field; if empty, generate a one-line project description in the user's language).
 - **If the API errors (502/401/timeout), do not write or modify the registry. Do not use placeholders or short_id as a fallback. Wait until the API is healthy again before writing.**
 
 **Project existence verification (important):**
