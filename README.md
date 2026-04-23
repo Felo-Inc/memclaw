@@ -16,7 +16,7 @@
 </p>
 
 <p align="center">
-  <a href="https://memclaw.me">Website</a> · <a href="#install">Install</a> · <a href="https://memclaw.me/zh-Hans/claw/install">Install Guide</a> · <a href="https://felo.ai/settings/api-keys">Get API Key</a> · <a href="#why-memclaw">Why MemClaw?</a>
+  <a href="https://memclaw.me">MemClaw</a> · <a href="#install">Install</a> · <a href="https://memclaw.me/en/claw/install">Install Guide</a> · <a href="https://felo.ai/settings/api-keys">Get API Key</a> · <a href="#why-memclaw">Why MemClaw?</a>
 </p>
 
 ---
@@ -54,7 +54,7 @@ Unlike general-purpose AI memory tools, MemClaw is designed specifically for **p
 - **README memory** — agent maintains a structured project README: background, user preferences, current progress.
 - **Query** — retrieve workspace contents by browsing or semantic search.
 - **Cross-session** — load any workspace and pick up exactly where things left off.
-- **Web dashboard** — open [memclaw.me](https://memclaw.me) to view and manage all your project memories.
+- **Web dashboard** — open the [MemClaw dashboard](https://memclaw.me) to view and manage all your project memories.
 
 ---
 
@@ -148,8 +148,8 @@ Whether it's a bug fix, feature request, or documentation improvement — all co
 
 ## Community
 
-- **Website**: [memclaw.me](https://memclaw.me)
-- **Install Guide**: [memclaw.me/zh-Hans/claw/install](https://memclaw.me/zh-Hans/claw/install)
+- **Website**: [MemClaw — official site](https://memclaw.me)
+- **Install Guide**: [MemClaw Install Guide](https://memclaw.me/en/claw/install)
 - **Bug Reports**: [GitHub Issues](https://github.com/Felo-Inc/memclaw/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/Felo-Inc/memclaw/discussions)
 
@@ -162,5 +162,5 @@ MIT — see [LICENSE](LICENSE) for details.
 ---
 
 <p align="center">
-  Made with care by the <a href="https://felo.ai">Felo</a> team · <a href="https://memclaw.me">memclaw.me</a>
+  Made with care by the <a href="https://felo.ai">Felo</a> team · <a href="https://memclaw.me">MemClaw</a>
 </p>
